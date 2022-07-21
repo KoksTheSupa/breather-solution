@@ -1,21 +1,18 @@
 from math import sqrt, pow, isnan
 import matplotlib.pyplot as plt
 from numba import prange
-from functools import lru_cache
-import numpy as np
-from decimal import Decimal
+from decimal import *
 
 N = 100
-DJ = Decimal((0.16))
-OMEGA = Decimal((-0.2))
-B = Decimal((0.15))
-EPS = H = Decimal((pow(10, -6)))
+DJ = Decimal("0.16")
+OMEGA = Decimal("-0.2")
+B = Decimal("0.15")
+EPS = H = Decimal(str(10**-6))
 S = [0] * (N + 1)#np.zeros(N + 1)
 DELIMITER = 2000000000 # double results[2000000000]
 s0 = 0.8
 temp = (0.4) / (DELIMITER)
 
-np.set_printoptions(precision=16, floatmode='fixed')
 
 """Построение графиков"""
 def plot(x, y):
@@ -27,15 +24,13 @@ def plot(x, y):
     plt.show()
 
 
-@lru_cache(maxsize= None)
 def counter(start: float) -> bool:
-
-    S[0] = Decimal((start)).quantize(Decimal("1.000000000000000"))
-    a = OMEGA * S[0] + 2 * B * S[0] * Decimal((sqrt(1 - pow(S[0], 2))))
-    S[1] = (-a * Decimal((sqrt(1 + DJ**2))) * Decimal((sqrt(1 - pow(S[0], 2)))) + S[0] * Decimal(sqrt(1 +DJ**2 * Decimal(((1 - pow(S[0], 2)))) - Decimal(pow(a, 2))))) / Decimal((1 + DJ**2 * Decimal((1 - pow(S[0], 2))))).quantize(Decimal("1.000000000000000"))  
+    S[0] = Decimal(str(start)).quantize(Decimal("1.000000000000000"), ROUND_HALF_UP)
+    a = OMEGA * S[0] + 2 * B * S[0] * Decimal((sqrt(1 - S[0]**2)))
+    S[1] = ((-a * Decimal(sqrt(1 + DJ**2)) * Decimal(sqrt(1 - S[0]**2)) + S[0] * Decimal(sqrt(1 +DJ**2 * Decimal(((1 - S[0]**2))) - Decimal(a**2)))) / Decimal((1 + DJ**2 * Decimal(1 - S[0]**2)))).quantize(Decimal("1.000000000000000"), ROUND_HALF_UP)  
     for i in range(1, N):
-        A = OMEGA * S[i] + 2 * B * S[i] * Decimal(sqrt(1 - pow(S[i], 2))) + S[i - 1] * Decimal(sqrt(1 + DJ**2)) * Decimal(sqrt(1 - pow(S[i], 2))) - S[i] * Decimal(sqrt(1 - pow(S[i - 1], 2)))
-        S[i + 1] = ((-A * Decimal(sqrt(1 + DJ**2)) * Decimal(sqrt(1 - pow(S[i], 2))) + S[i] * Decimal(sqrt(1 - Decimal(pow(A, 2)) + DJ**2 * Decimal((1 - pow(S[i], 2)))))) / Decimal((1 + DJ**2 * Decimal((1 - pow(S[0], 2)))))).quantize(Decimal("1.000000000000000"))
+        A = OMEGA * S[i] + 2 * B * S[i] * Decimal(sqrt(1 - S[i]**2)) + S[i - 1] * Decimal(sqrt(1 + DJ**2)) * Decimal(sqrt(1 - S[i]**2)) - S[i] * Decimal(sqrt(1 - S[i-1]**2))
+        S[i + 1] = ((-A * Decimal(sqrt(1 + DJ**2)) * Decimal(sqrt(1 - S[i]**2)) + S[i] * Decimal(sqrt(Decimal(1 - A**2) + DJ**2 * Decimal((1 - S[i]**2))))) / Decimal((1 + DJ**2 * Decimal(1 - S[i]**2)))).quantize(Decimal("1.000000000000000"), ROUND_HALF_UP)
         if isnan(S[i + 1]): break
     return(S)
     if abs(abs(S[0]) - abs(S[N])) < 0.01: return 0
@@ -50,7 +45,6 @@ def selection(amount: int) -> float:
         if counter(s0 + temp * i) > 0:
             print(s0 + temp * i)
             return(s0 + temp * i)
-
 
 def main():
     print(f'initial: {(s0)}, start max: {s0 + temp * DELIMITER}')

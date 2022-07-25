@@ -17,11 +17,17 @@ temp = Decimal(Decimal("0.4") / (DELIMITER))
 
 """Построение графиков"""
 def plot(x, y):
+    x = [i for i in prange(x)]
+    xmax = x[y.index(max(y))]
     fig, graph = plt.subplots()
-    graph.scatter([i for i in prange(x)], y, 30, 'black' )
-    graph.plot([i for i in prange(x)], y, linewidth=1.0)
+    graph.scatter(x, y, 30, 'black' )
+    graph.plot(x, y, linewidth=1.0)
     graph.spines['bottom'].set_position('center')
     graph.set_ylabel('S') 
+    graph.annotate(f'Local max = {max(y)}', xy=(xmax, max(y)), xytext=(xmax,max(y) + Decimal(0.10)),
+                   arrowprops = dict(facecolor='black', shrink=0.05, headlength = 5, width = 2 ),
+                   )
+    graph.set_ylim(-max(y) - Decimal('0.15'), max(y) + Decimal('0.15'))
     plt.show()
 
 
@@ -53,7 +59,7 @@ def main():
     print(f'Omega = {OMEGA}, eps = {EPS}\n')
     
     
-    S[0] = get_breather(DELIMITER,N)
+    S[0] = Decimal('0.556926333500000')
     a = OMEGA * S[0] + Decimal((2 * B * S[0] + H)) * Decimal(sqrt(1 - S[0]**2))
     S[1] = ((-a * Decimal(sqrt(1 + DJ**2)) * Decimal(sqrt(1 - S[0]**2)) + S[0] * Decimal(sqrt(1 + DJ**2 * (1 - S[0]**2) - a**2))) / Decimal((1 + DJ**2 * (1 - S[0]**2)))).quantize(Decimal("1.000000000000000"), ROUND_HALF_UP)
    
@@ -73,7 +79,7 @@ def main():
             
             file.write('{%s,%s}};'% (N, S[N]))
             file.write("\n\nListPlot[dataS,Joined->True,Mesh->All,PlotRange->All]\n\n")
-
+    print(max(S))
     plot(N+1, S)
 
 if __name__ == "__main__":

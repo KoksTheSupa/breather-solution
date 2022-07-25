@@ -65,7 +65,7 @@ def main():
         S[i + 1] = (-A * sqrt(1 + DJ**2) * sqrt(1 - pow(S[i], 2)) + S[i] * sqrt(1 - pow(A, 2) + DJ**2 * (1 - pow(S[i], 2)))) / (1 + DJ**2 * (1 - pow(S[i], 2)))
         
         if isnan(S[i + 1]): break
-
+    print(S)
     print(f'Left: {S[N] * OMEGA}, right: {S[N] * sqrt(1 - pow(S[N - 1], 2)) - (S[N - 1] + 2 * B * S[N]) * sqrt(1 - pow(S[N], 2))}')
     
     if (abs(1.0 - (S[N] * sqrt(1 - pow(S[N - 1], 2)) - (S[N - 1] + 2 * B * S[N]) * sqrt(1 - pow(S[N], 2))) / (S[N] * OMEGA)) < 0.000001):

@@ -1,16 +1,18 @@
-from math import sqrt, pow, isnan
-import matplotlib.pyplot as plt
-from numba import prange
 from decimal import *
+from math import sqrt, isnan
+from numba import prange
+from random import randint
+
+import matplotlib.pyplot as plt
 
 N = 101
 DJ = Decimal("0.16")
-OMEGA = Decimal("-0.2")
+OMEGA = Decimal("-0.32")
 B = Decimal("0.15")
 EPS = H = Decimal(str(10**-6))
-S = [0] * (N)  # np.zeros(N + 1)
+S = [0] * (N + 1)  # np.zeros(N + 1)
 DELIMITER = 2000000000  # double results[2000000000]
-s0 = Decimal("0.728501990485836")
+s0 = Decimal("0.156407196400000")
 temp = Decimal(Decimal("0.4") / (DELIMITER))
 
 
@@ -25,12 +27,17 @@ def plot(x, y):
     graph.plot(x, y, linewidth=1.0)
     graph.spines['bottom'].set_position('center')
     graph.set_ylabel('S')
+    graph.set_xlabel('N')
     graph.annotate(f'Local max = {max(y)}', xy=(xmax, max(y)), xytext=(xmax, max(y) + Decimal(0.10)),
                    arrowprops=dict(facecolor='black',
                                    shrink=0.05, headlength=5, width=2),
                    )
     graph.set_ylim(-max(y) - Decimal('0.15'), max(y) + Decimal('0.15'))
+    graph.grid(True)
     plt.show()
+
+
+"""Запись в файл"""
 
 
 def writef(S):
@@ -46,6 +53,9 @@ def writef(S):
             "\n\nListPlot[dataS,Joined->True,Mesh->All,PlotRange->All]\n\n")
 
 
+"""Расчет цепочки"""
+
+
 def counter(start: float, N: int):
     S[0] = Decimal(str(start)).quantize(
         Decimal("1.000000000000000"), ROUND_HALF_UP)
@@ -56,7 +66,7 @@ def counter(start: float, N: int):
         A = OMEGA * S[i] + 2 * B * S[i] * Decimal(sqrt(1 - S[i]**2)) + S[i - 1] * Decimal(
             sqrt(1 + DJ**2)) * Decimal(sqrt(1 - S[i]**2)) - S[i] * Decimal(sqrt(1 - S[i-1]**2))
         S[i + 1] = ((-A * Decimal(sqrt(1 + DJ**2)) * Decimal(sqrt(1 - S[i]**2)) + S[i] * Decimal(sqrt(Decimal(1 - A**2) + DJ**2 *
-                    Decimal((1 - S[i]**2))))) / Decimal((1 + DJ**2 * Decimal(1 - S[i]**2)))).quantize(Decimal("1.000000000000000"), ROUND_HALF_UP)
+                                                                                                      Decimal((1 - S[i]**2))))) / Decimal((1 + DJ**2 * Decimal(1 - S[i]**2)))).quantize(Decimal("1.000000000000000"), ROUND_HALF_UP)
         if isnan(S[i + 1]):
             break
     return (S)
@@ -72,7 +82,7 @@ def check(last, prelast):
 
 
 def get_breather(amount, N):
-    for i in range(amount):
+    for i in prange(amount):
         counter(s0 + temp * i, N)
         if check(S[N], S[N - 1]):
             return (s0 + temp * i)
@@ -81,11 +91,8 @@ def get_breather(amount, N):
 def main():
     print(f'initial: {(s0)}, start max: {s0 + temp * DELIMITER}')
     print(f'Omega = {OMEGA}, eps = {EPS}\n')
-    plot(N, counter(Decimal('0.782022589406450'), N))
-    if (abs(Decimal('1.0') - (S[N] * Decimal(sqrt(1 - S[N - 1]**2)) - (S[N - 1] + 2 * B * S[N]) * Decimal(sqrt(1 - S[N]**2))) / (S[N] * OMEGA)) < EPS):
-        writef(S)
-    print(max(S))
-    plot(N+1, S)
+    plot(N + 1, counter(s0, N))
+    writef(S)
 
 
 if __name__ == "__main__":

@@ -1,18 +1,19 @@
 from decimal import *
-from math import sqrt, isnan
+import _thread
+from math import fabs, sqrt, isnan
 from numba import prange
-from random import randint
 
 import matplotlib.pyplot as plt
 
 N = 100
 DJ = Decimal("0.16")
-OMEGA = Decimal("-0.28")
+SQDJ = Decimal(sqrt(1 + DJ**2))
+OMEGA = Decimal("-0.30")
 B = Decimal("0.15")
-EPS = H = Decimal(str(10**-6))
-S = [0] * (N+1)  # np.zeros(N + 1)
-DELIMITER = 2000000000  # double results[2000000000]
-s0 = Decimal("0.495373257505000")
+EPS = H = Decimal("0.000001")
+S = [0] * (N+1)
+DELIMITER = 2_000_000_000  # double results[2000000000]
+s0 = Decimal("0.822541021556128")
 temp = Decimal(Decimal("0.4") / (DELIMITER))
 
 
@@ -25,7 +26,7 @@ def plot(x, y):
     fig, graph = plt.subplots()
     graph.scatter(x, y, 30, 'black')
     graph.plot(x, y, linewidth=1.0)
-    graph.spines['bottom'].set_position('center')
+    graph.spines['bottom'].set_position('center')  # type: ignore
     graph.set_ylabel('S')
     graph.set_xlabel('N')
     graph.annotate(f'Local max = {max(y)}', xy=(xmax, max(y)), xytext=(xmax, max(y) + Decimal(0.10)),
@@ -56,43 +57,44 @@ def writef(S):
 """Расчет цепочки"""
 
 
-def counter(start: float, N: int):
+def counter(start, N, H=Decimal("0.0")):
     S[0] = Decimal(str(start)).quantize(
         Decimal("1.000000000000000"), ROUND_HALF_UP)
-    a = OMEGA * S[0] + 2 * B * S[0] * Decimal((sqrt(1 - S[0]**2)))
-    S[1] = ((-a * Decimal(sqrt(1 + DJ**2)) * Decimal(sqrt(1 - S[0]**2)) + S[0] * Decimal(sqrt(1 + DJ**2 * Decimal(((1 - S[0]**2))
-                                                                                                                  ) - Decimal(a**2)))) / Decimal((1 + DJ**2 * Decimal(1 - S[0]**2)))).quantize(Decimal("1.000000000000000"), ROUND_HALF_UP)
-    for i in range(1, N-1):
-        A = OMEGA * S[i] + 2 * B * S[i] * Decimal(sqrt(1 - S[i]**2)) + S[i - 1] * Decimal(
-            sqrt(1 + DJ**2)) * Decimal(sqrt(1 - S[i]**2)) - S[i] * Decimal(sqrt(1 - S[i-1]**2))
-        S[i + 1] = ((-A * Decimal(sqrt(1 + DJ**2)) * Decimal(sqrt(1 - S[i]**2)) + S[i] * Decimal(sqrt(Decimal(1 - A**2) + DJ**2 *
-                                                                                                      Decimal((1 - S[i]**2))))) / Decimal((1 + DJ**2 * Decimal(1 - S[i]**2)))).quantize(Decimal("1.000000000000000"), ROUND_HALF_UP)
+    a = OMEGA * S[0] + (2 * B * S[0] + H) * Decimal((sqrt(1 - S[0]**2)))
+    S[1] = ((-a * SQDJ * Decimal(sqrt(1 - S[0]**2)) + S[0] * Decimal(sqrt(1 + DJ**2 * Decimal(((1 - S[0]**2))) - Decimal(a**2)))
+             ) / Decimal((1 + DJ**2 * Decimal(1 - S[0]**2)))).quantize(Decimal("1.000000000000000"), ROUND_HALF_UP)
+    for i in range(1, N):
+        A = OMEGA * S[i] + (2 * B * S[i] + H) * Decimal(sqrt(1 - S[i]**2)) + S[i - 1] * SQDJ * Decimal(sqrt(1 - S[i]**2)) - S[i] * \
+            Decimal(sqrt(1 - S[i-1]**2))
+        S[i + 1] = ((-A * SQDJ * Decimal(sqrt(1 - S[i]**2)) + S[i] * Decimal(sqrt(Decimal(1 - A**2) + DJ**2 * Decimal((1 - S[i]**2))))
+                     ) / Decimal((1 + DJ**2 * Decimal(1 - S[i]**2)))).quantize(Decimal("1.000000000000000"), ROUND_HALF_UP)
         if isnan(S[i + 1]):
             break
-    return (S)
 
 
 def check(last, prelast):
-    temp = abs(Decimal(1.0) - (last * Decimal(sqrt(1 - last**2)) -
-               (prelast + 2 * B * S[N]) * Decimal(sqrt(1 - last**2))) / (last * OMEGA))
+    temp = fabs(Decimal(1.0) - (last * Decimal(sqrt(1 - prelast**2)) -
+                                (prelast + 2 * B * last) * Decimal(sqrt(1 - last**2))) / (last * OMEGA))
+ # type: ignore
     if temp < EPS:
         return 1
     else:
         return 0
 
 
-def get_breather(amount, N):
+def get_breather(amount: int, N: int):
     for i in prange(amount):
-        counter(s0 + temp * i, N)
+        counter(s0 + temp * i, N)  # type: ignore
         if check(S[N], S[N - 1]):
-            return (s0 + temp * i)
+            print(s0 + temp * i)
+            counter(i, N, H)
+            writef(S)
 
 
 def main():
-    print(f'initial: {(s0)}, start max: {s0 + temp * DELIMITER}')
+    print(f'initial: {s0}, start max: {s0 + temp * DELIMITER}')
     print(f'Omega = {OMEGA}, eps = {EPS}\n')
-    plot(N + 1, counter(s0, N))
-    writef(S)
+
     plt.plot([-0.32, -0.28, -0.22, -0.2, -0.18], [0.165036570213893, 0.509457626013908,
                                                   0.736884391556128, 0.788864920607633, 0.833085737950537])
     plt.show()

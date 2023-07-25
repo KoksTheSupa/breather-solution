@@ -1,12 +1,10 @@
-import _thread
-
 from decimal import *
 from math import fabs, sqrt, isnan
 from mpl_toolkits.mplot3d import Axes3D
-import multiprocessing as mp
-
+from typing import Literal
 import matplotlib.pyplot as plt
 import mpl_toolkits.mplot3d.art3d as art3d
+import multiprocessing as mp
 
 N = 100
 DJ = Decimal("0.16")
@@ -21,15 +19,16 @@ s0 = Decimal("0.2")
 temp = Decimal("0.4") / DELIMITER
 
 
-"""Построение графиков"""
 
 
-def plot(x, y):
-    x = [i for i in range(x)]
-    xmax = x[y.index(max(y))]
+
+def plot(x: int, y: list) -> None:
+    """Построение графиков"""
+    x_list = [i for i in range(x)]
+    xmax = x_list[y.index(max(y))]
     fig, graph = plt.subplots()
-    graph.scatter(x, y, 30, 'black')
-    graph.plot(x, y, linewidth=1.0)
+    graph.scatter(x_list, y, 30, 'black')
+    graph.plot(x_list, y, linewidth=1.0)
     graph.spines['bottom'].set_position('center')  # type: ignore
     graph.set_ylabel('E')
     graph.set_xlabel('N')
@@ -40,15 +39,16 @@ def plot(x, y):
     plt.show()
 
 
-"""Построение 3D модели"""
 
 
-def plot3D(x, y):
-    x = [i for i in range(x)]
+
+def plot3D(x: int, y: list) -> None:
+    """Построение 3D модели"""
+    x_list = [i for i in range(x)]
     z = y*2
     fig = plt.figure()
     ax = fig.add_subplot(1, 1, 1, projection='3d')
-    for xi, yi, zi in zip(z, x, y):
+    for xi, yi, zi in zip(z, x_list, y):
         if xi < 0:
             line = art3d.Line3D(*zip((xi, yi, 0), (xi, yi, zi)),
                                 marker=11, markevery=(1, 1))
@@ -64,10 +64,11 @@ def plot3D(x, y):
     plt.show()
 
 
-"""Запись в файл"""
 
 
-def writef(chain: list):
+
+def writef(chain: list) -> None:
+    """Запись в файл"""
     with open(f'e_N({N+1})_Omega{OMEGA}_B{B}_dj{DJ*100}.nb', 'a+') as file:
         file.write(
             f'text=\"parameters: omega={OMEGA}, N(real)=({N+1}), B={B}, dj={DJ}, S[N]={S[0]} (EDGE algorithm)\"\ndataS = {{')
@@ -80,10 +81,11 @@ def writef(chain: list):
             "\n\nListPlot[dataS,Joined->True,Mesh->All,PlotRange->All]\n\n")
 
 
-"""Расчет цепочки"""
 
 
-def counter(start: Decimal, N: int):
+
+def counter(start: Decimal, N: int) -> list[Decimal]:
+    """Расчет цепочки"""
     S[0] = Decimal(str(start)).quantize(
         Decimal("1.000000000000000"), ROUND_HALF_UP)
     a = OMEGA * S[0] + (2 * B * S[0]) * Decimal((sqrt(1 - S[0]**2)))
@@ -96,21 +98,24 @@ def counter(start: Decimal, N: int):
                      ) / Decimal((1 + DJ**2 * Decimal(1 - S[i]**2)))).quantize(Decimal("1.000000000000000"), ROUND_HALF_UP)
         if isnan(S[i + 1]):
             break
+    return S
 
 
-"""Проверка на сходимость"""
+
 
 
 def check(last: Decimal, prelast: Decimal) -> bool:
+    """Проверка на сходимость"""
     temp = fabs(Decimal(1.0) - (last * Decimal(sqrt(1 - prelast**2)) -
                                 (prelast + 2 * B * last) * Decimal(sqrt(1 - last**2))) / (last * OMEGA))
     return temp < EPS
 
 
-"""Получение бризерного решения"""
 
 
-def get_breather(amount: int, N: int):
+
+def get_breather(amount: int, N: int) -> None:
+    """Получение бризерного решения"""
     for i in range(amount):
         counter(s0 + temp * i, N)
         if check(S[N], S[N - 1]):
@@ -120,10 +125,11 @@ def get_breather(amount: int, N: int):
             plot(N+1, S)
 
 
-"""Расчет энергии"""
 
 
-def energy(chain: list):
+
+def energy(chain: list) -> Decimal | Literal[0]:
+    """Расчет энергии"""
     E = 0
     E0 = Decimal("-2.35")
     sum1, sum2, sum3, sum4 = 0, 0, 0, 0
@@ -135,6 +141,7 @@ def energy(chain: list):
         sum4 = Decimal(sqrt(1 - chain[i]*chain[i]))
         E += (-Decimal(sqrt(1 + DJ**2))*sum1 + Decimal("0.15")
               * sum2 - sum3 - Decimal("1.5")*sum4 - E0)/N
+    return E
 
 
 def main():
